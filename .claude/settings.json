@@ -14,7 +14,11 @@
       "Bash(docker build:*)",
       "Bash(docker ps:*)",
       "Bash(docker images:*)",
-      "Bash(docker logs:*)"
+      "Bash(docker logs:*)",
+      "Bash(coverage:*)",
+      "Bash(python -m coverage:*)",
+      "Bash(flake8:*)",
+      "Bash(python -m flake8:*)"
     ],
     "deny": [
       "Read(./.env)",

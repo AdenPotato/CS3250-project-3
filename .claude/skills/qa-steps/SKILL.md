@@ -8,7 +8,7 @@ argument-hint: "[branch or user story]"
 
 Turn "ready to review" into a script a teammate can run without designing the test themselves.
 
-**Why this exists.** Every PR into `dev` needs approval from someone other than its author, and the reviewer's job is to pull the branch and **run** it. "Have a click around" produces "looks fine", which cannot be logged. A numbered script produces "4b failed, remaining portions went to -1" - which is a defect report, a reproduction, and a `manual-tests.md` row at once.
+**Why this exists.** Every PR needs approval from someone other than its author, and the reviewer's job is to pull the branch and **run** it. "Have a click around" produces "looks fine". A numbered script produces "4b failed, the unfinished issue stayed in the completed sprint" - which is a defect report and a reproduction at once.
 
 ## When to run it
 
@@ -25,22 +25,22 @@ Skip it for a change with no observable surface: a scrum record, a diagram, a RE
 git fetch && git switch <branch> && git pull
 docker compose down -v               # fresh seeded database - ask the tester first, it wipes local data
 docker compose up --build            # http://localhost:5000
+pytest                               # the automated tests pass before anyone clicks
 ```
 
 Then name, concretely:
 
-- **The accounts** - the seed vendor and student from the README, plus a **second** of whichever role the isolation steps need. Give the emails and passwords to create.
-- **The data** - which seeded listing to use, or what to create first.
-- **The clock** - a step about an ended window needs a listing whose window has ended. Say how to get one (a seed listing, or create one with a short window and wait).
+- **The accounts** - the seed accounts from the README, plus whichever extra ones the access steps need: a project **owner**, a **member** who is not the owner, and a **non-member**. Give the usernames and passwords to create.
+- **The data** - which seeded project, issues and sprint to use, or what to create first.
 
 ## Step 2 - Derive the steps from the criteria and the diff
 
 In this order:
 
 1. **Each acceptance criterion of the story**, in its numbered order - so step numbers line up with criteria where possible.
-2. **The failures the criteria name** - duplicate email, too many portions, a used pickup code.
-3. **The security surface** - signed out, wrong role, another user's id in the URL.
-4. **What must not have changed** - the previous stories this one builds on (a reservation change can break US3's portions-remaining display).
+2. **The failures the criteria name** - duplicate project key, empty title, invalid story points, a second active sprint.
+3. **The access surface** - signed out, member but not owner, non-member with a project id in the URL.
+4. **What must not have changed** - the previous stories this one builds on (a sprint change can break the backlog list from US5).
 
 ## Step 3 - Write the steps
 
@@ -49,22 +49,22 @@ In this order:
 Every step has three parts:
 
 - **Do** - one concrete action.
-- **Expect** - the exact observable result. Not "the portions update" but "the listing shows `Portions left: 3`".
+- **Expect** - the exact observable result. Not "the issue moves" but "`WEB-3` is in the In Progress column after a refresh".
 - **Result** - blank, for the tester.
 
-Rules: one assertion per sub-step; exact values and exact message text; say what the near-miss failure looks like ("if it shows -1, the decrement is not guarded"); never write a step whose result you already know.
+Rules: one assertion per sub-step; exact values and exact message text; say what the near-miss failure looks like; never write a step whose result you already know.
 
 ## Step 4 - Render it
 
-This goes in the PR description or a comment, not a file. The permanent record is `tests/manual-tests.md`.
+This goes in the PR description or a comment, not a file.
 
 ```markdown
 ## QA script - <branch> (US#)
 
 **Preconditions**
-- Branch: `<branch>`, pulled
+- Branch: `<branch>`, pulled; `pytest` passes
 - `docker compose down -v && docker compose up --build` -> http://localhost:5000
-- Accounts: seed vendor `<email>` / `<pw>`, seed student `<email>` / `<pw>`, plus register `student2@example.com` / `password2`
+- Accounts: owner `<user>` / `<pw>`, member `<user>` / `<pw>`, non-member `<user>` / `<pw>`
 - Roughly: <minutes>
 
 ### 1. US#.1 - <criterion short name>
@@ -87,7 +87,6 @@ This goes in the PR description or a comment, not a file. The permanent record i
 
 ## Step 5 - Close the loop
 
-1. **Every step that ran becomes a `manual-tests.md` row** via [`/test-log`](../test-log/SKILL.md), keyed by story and criterion.
-2. **A failed row stays.** The fix gets a new row for the retest.
-3. **Re-issue only the affected steps**, plus any regression step the fix could touch.
-4. **The reviewer approves the PR only when every step passed.**
+1. **A failed step becomes a test.** Before the fix, write the pytest test that reproduces it (`/testing`), so it cannot come back.
+2. **Re-issue only the affected steps**, plus any regression step the fix could touch.
+3. **The reviewer approves the PR only when every step passed.**

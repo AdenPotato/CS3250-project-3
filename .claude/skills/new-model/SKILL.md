@@ -1,11 +1,13 @@
 ---
 name: new-model
-description: Change a SQLAlchemy model - edit models.py, reset or migrate the PostgreSQL schema, update the seed data, and update the class diagram together. Use for any change to User, Listing, Reservation, DietaryTag or their relationships.
+description: Change a SQLAlchemy model - edit models.py and its repository, reset or migrate the PostgreSQL schema, update the seed data, and update the class diagram together. Use for the foundation's models, or any later change to User, Project, ProjectMember, Issue, Sprint, Comment or their relationships.
 ---
 
 # /new-model
 
-A model change is not just an edit to `models.py`. The database lives in a Docker volume, the seed data writes to it, and the class diagram is graded for matching it. All three move together.
+The Sprint 1 foundation creates **every** model, so stories are not supposed to change the schema - a change here touches every teammate. Agree it with the team first.
+
+A model change is not just an edit to `models.py`. The database lives in a Docker volume, the repositories query it, the seed data writes to it, and the class diagram is graded (**+5**) for describing it. All of them move together.
 
 ## Before changing anything
 
@@ -19,32 +21,34 @@ Know how the schema is created in this repo - check `src/app/__init__.py`:
 ## Steps
 
 1. **Edit `src/app/models.py`.** Constraints the criteria depend on belong in the database, not only in the form:
-   - `User.email` unique (US1.2).
-   - `Listing.portions` checked 1-100, remaining portions `>= 0` (US2.1, US4.4) - a `CheckConstraint` makes "never below zero" true even if a route is wrong.
-   - `Reservation.pickup_code` unique (US4.1).
-   - At most one *active* reservation per student per listing (US4.3) - a partial unique index on PostgreSQL, or enforced in the route with a clear message.
-   - Many-to-many `Listing` <-> `DietaryTag` through an association table.
+   - `User.username` and `User.email` unique (US1.2).
+   - `Project.key` unique, 2-6 uppercase letters (US3.1, US3.2).
+   - `ProjectMember` unique on `(user_id, project_id)`, with a `role` of OWNER or MEMBER (US4.2).
+   - `Issue` unique on `(project_id, number)` so `WEB-3` is never issued twice; `story_points` limited to 1, 2, 3, 5, 8, 13 or null (US5.2); `type`, `priority`, `status` as enums.
+   - `Issue.sprint_id` nullable - null means the issue is in the backlog (US5.6, US7.2, US7.4).
+   - At most one ACTIVE sprint per project (US7.3) - a partial unique index on PostgreSQL, and the service checks it with a clear message.
+   - Deleting a project or issue cascades to what it owns; deleting a user does not silently delete issues.
    - Datetimes timezone-aware (`DateTime(timezone=True)`).
 
-2. **Apply it.**
+2. **Update the repository** in `src/app/repositories/` for any new query. Services never build queries themselves.
+
+3. **Apply it.**
    - `create_all`: `docker compose down -v && docker compose up --build` (ask first - it deletes the local data).
    - Flask-Migrate: `flask db migrate -m "<what changed>"` inside the `web` container, read the generated file, then restart.
 
    Confirm the container starts with no traceback and the seed accounts still log in.
 
-3. **Check what the change broke.**
+4. **Check what the change broke.**
    ```
-   grep -rn "<field>" src/
+   grep -rn "<field>" src/ tests/
    ```
-   Routes, forms, templates and `seed.py` all touch model fields directly.
+   Repositories, services, forms, templates, tests and `seed.py` all touch model fields.
 
-4. **Update `src/seed.py`** if the field is required, so a fresh start still seeds cleanly.
+5. **Update `src/seed.py`** if the field is required, so a fresh start still seeds cleanly.
 
-5. **Update `uml/class.wsd`** to match (`/uml class`). A class diagram that disagrees with `models.py` loses design points.
+6. **Update `uml/class.wsd`** to match (`/uml class`). Model classes only - no repositories or services in it.
 
-6. **Run it.** Log in as each seed account and walk the stories already done. A model change breaks things far from where it was made.
-
-7. **Re-test** the affected stories and add rows (`/test-log`).
+7. **Run the tests** (`pytest`) and walk the stories already done. A model change breaks things far from where it was made.
 
 ## The PR
 

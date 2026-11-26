@@ -15,16 +15,10 @@ __pycache__/
 *.py[cod]
 *$py.class
 
-# Tests and coverage
+# Tests and coverage - htmlcov/ is committed, the assignment requires it
 .pytest_cache/
 .coverage
 .coverage.*
-htmlcov/
-
-# Selenium and browser driver output
-geckodriver.log
-chromedriver.log
-screenshots/
 
 # Flask-Migrate creates migrations/ - that folder IS committed. The database lives
 # in a Docker volume, so there is no database file to ignore. These catch a stray

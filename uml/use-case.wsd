@@ -1,0 +1,37 @@
+@startuml use-case
+left to right direction
+
+actor Visitor
+actor Member
+actor "Project owner" as Owner
+Owner -|> Member
+
+rectangle TaskBoard {
+  usecase "Register (US1)" as UC1
+  usecase "Log in / log out (US2)" as UC2
+  usecase "Create project (US3)" as UC3
+  usecase "Add / remove members (US4)" as UC4
+  usecase "Create / edit issues (US5)" as UC5
+  usecase "View board and\nchange status (US6)" as UC6
+  usecase "Plan, start and\ncomplete sprints (US7)" as UC7
+  usecase "Comment on issue (US8)" as UC8
+  usecase "Search issues (US9)" as UC9
+  usecase "View my work (US10)" as UC10
+  usecase "Switch light / dark mode (US11)" as UC11
+}
+
+Visitor --> UC1
+Visitor --> UC2
+Member --> UC3
+Member --> UC5
+Member --> UC6
+Member --> UC8
+Member --> UC9
+Member --> UC10
+Visitor --> UC11
+Member --> UC11
+Owner --> UC4
+Owner --> UC7
+
+note "US8-US11 are optional" as N1
+@enduml

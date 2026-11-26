@@ -31,19 +31,19 @@ for b in $(git branch --format='%(refname:short)' | grep -vE '^(main|dev)$'); do
 done
 ```
 
-If there is no repo or no `dev` branch yet, stop and say so. Creating `dev` from `main` is the first task of the project.
+If there is no `dev` branch yet, stop and say so. Creating `dev` from `main` and protecting `main` are the first tasks of the project.
 
 ## Step 1 - Read the context (in parallel)
 
 Read all of these before forming any opinion:
 
-- [README.md](../../../README.md) - the backlog, the acceptance criteria, the release plan, the rubric.
+- [README.md](../../../README.md) - the stories, acceptance criteria, backlog and sprint plan.
+- [ASSIGNMENT.md](../../../ASSIGNMENT.md) - the rubric and penalties.
 - The current sprint's `scrum/sprint_#/planning.md` - the goal, the stories, who owns which task. The current sprint is the highest-numbered one with a filled planning record and no filled review.
 - That sprint's `daily_scrums.md` - the latest blockers.
 - The previous sprint's `retrospective.md` - the actions this sprint promised to carry out.
-- `tests/manual-tests.md`, if it exists - which criteria have evidence.
 
-If the last daily scrum or PR says a model changed, act on it first: `docker compose down -v && docker compose up --build`.
+If the last daily scrum or PR says a model changed, act on it first: `docker compose down -v && docker compose up --build` (ask first - it wipes local data).
 
 ## Step 2 - Report where things stand
 
@@ -56,22 +56,22 @@ Two additions for a session start:
 
   ```bash
   gh issue list --state open --limit 50 \
-    --json number,title,labels,assignees,milestone \
-    --jq '.[] | "#\(.number)\t\([.labels[].name] | map(select(test("^US[0-9]+$"))) | join(","))\t\([.assignees[].login] | join(",") // "unassigned")\t\(.milestone.title // "no sprint")\t\(.title)"'
+    --json number,title,assignees,milestone \
+    --jq '.[] | "#\(.number)\t\([.assignees[].login] | join(",") // "unassigned")\t\(.milestone.title // "no sprint")\t\(.title)"'
   ```
 
-  Flag anything with no `US#` label, anything unassigned in the current sprint, and anything whose sprint has already closed.
+  Flag anything whose title has no `US#:` or work prefix, anything unassigned in the current sprint, and anything whose sprint has already closed.
 
 ## Step 3 - Propose one pick
 
-End the report with a single proposal from the **current sprint's plan**. Within it: required before optional, a story whose dependencies are merged, and work that unblocks a teammate first.
+End the report with a single proposal from the **current sprint's plan**. Within it: the foundation if not merged, then required before optional, higher rank first.
 
 ```
 Pick:        <issue #> - <title> (US#)
 Why now:     <one line - dependency, sprint goal, or who it unblocks>
 Branch:      <issue#>-short-slug
 Deliverable: <the concrete artifact> -> <the acceptance criteria it closes>
-Verified by: <Selenium, manual-tests.md rows, or both>
+Verified by: <the pytest tests that cover it>
 Shape:       <two or three steps>
 ```
 
@@ -87,13 +87,13 @@ No branch, no edits, no `gh issue edit` before a teammate answers.
 
 Read the story's acceptance criteria in full, then the code and diagrams it touches, and say which files you read and why.
 
-**Confirm the deliverable before any code.** Name which criteria it closes. If a criterion is unclear, stop and run [`/new-design`](../new-design/SKILL.md) or ask a teammate - never guess a requirement (AGENTS.md rule 7).
+**Confirm the deliverable before any code.** Name which criteria it closes. If a criterion is unclear, stop and run [`/new-design`](../new-design/SKILL.md) or ask a teammate - never guess a requirement (AGENTS.md rule 8).
 
 Only then:
 
 ```bash
 gh issue edit <n> --add-assignee @me     # claim it before coding
-git switch -c <issue#>-short-slug        # off dev, e.g. 25-reservation-model
+git switch -c <issue#>-short-slug        # off dev, e.g. 14-sprint-model
 ```
 
 Move the card to **In Progress** on the board.
@@ -101,5 +101,5 @@ Move the card to **In Progress** on the board.
 ## Notes
 
 - **Sprint discipline.** If the pick belongs to a later sprint, say so. Pulling work forward is a Sprint Planning decision, not a session one.
-- **Dependencies are binding.** A story whose prerequisites are not merged and passing is not startable, however small it looks.
-- **Day one comes first.** No `dev` branch, no Scrum Master in the README, or no Sprint 0 plan is the pick, whatever else is on the board.
+- **The foundation comes first.** Until it is merged into `dev`, it is the pick. After that every story is startable - stories do not depend on each other.
+- **Day one comes first.** No `dev` branch, no protected `main`, no team in the README, or no Sprint 0 plan is the pick, whatever else is on the board.

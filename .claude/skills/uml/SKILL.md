@@ -1,135 +1,178 @@
 ---
 name: uml
-description: Write or refresh the PlantUML class diagram (uml/class.wsd) and a story's sequence diagram (uml/sequence-US#.wsd) from the models and routes. Due by the end of Sprint 1, and re-run whenever the model or the flow changes.
-argument-hint: "[class | sequence US4]"
+description: Write or refresh the PlantUML use case diagram (uml/use-case.wsd), class diagram of the model classes (uml/class.wsd) and one story's sequence diagram (uml/sequence-US#.wsd), render them and embed them in the README. Due by the end of Sprint 1, and re-run whenever the model or the flow changes.
+argument-hint: "[use-case | class | sequence US7]"
 ---
 
 # /uml
 
-Two diagrams, **+5** together: class **+3**, sequence **+2**. Due by the end of Sprint 1, updated in later sprints if the design changes. Take which one from `$ARGUMENTS`; with none, do both.
+Three diagrams, each **+5** in the Documentation rubric: use case, sequence, class. All three must be **in the README**, not only in `uml/`. Take which one from `$ARGUMENTS`; with none, do all three.
 
 ## Sources
 
-- **Class diagram**: `src/app/models.py` once it exists - read the code, a diagram drawn from memory drifts. Before the code exists, the acceptance criteria in [README.md](../../../README.md#acceptance-criteria) and decisions from `/new-design`.
-- **Sequence diagram**: the story's route in `src/app/routes.py` and its criteria.
+- **Use case diagram**: the user stories in [README.md](../../../README.md#user-stories). Every use case maps to a story; every story appears.
+- **Class diagram**: `src/app/models.py` once it exists - read the code, a diagram drawn from memory drifts. Before the code exists, the acceptance criteria and decisions from `/new-design`.
+- **Sequence diagram**: the story's route, service and repository code, and its criteria.
+
+## Use case diagram
+
+`uml/use-case.wsd` already exists. Actors: Visitor, Member, Project owner (a specialisation of Member). US1-US11 all appear. Keep the `(US#)` in each use case name so the grader can trace it, and update it if a story is added or dropped.
 
 ## Class diagram
 
-`uml/class.wsd` needs at least **User, Vendor or a role, Listing, Reservation and DietaryTag**, their key attributes, and their associations **with multiplicities**. The database tables must be traceable to it. The template ships a stub `User` - replace it.
-
-Pick one way to model the role and say it in a note: a `role` attribute on `User` (simplest), or `Student` and `Vendor` subclasses of `User`. Either satisfies "Vendor or role".
+`uml/class.wsd` - **model classes only**. The assignment says no framework, library, controller, route, repository, service, test or utility classes. Show attributes, key methods, and associations **with multiplicities**. The template ships a stub `User` - replace it.
 
 ```plantuml
 @startuml class
 hide circle
 skinparam classAttributeIconSize 0
 
-enum Role {
-  STUDENT
-  VENDOR
+enum ProjectRole {
+  OWNER
+  MEMBER
+}
+
+enum IssueType {
+  STORY
+  BUG
+  TASK
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum IssueStatus {
+  TO_DO
+  IN_PROGRESS
+  DONE
+}
+
+enum SprintStatus {
+  PLANNED
+  ACTIVE
+  COMPLETED
 }
 
 class User {
   +id : Integer <<PK>>
-  +name : String
+  +username : String <<unique>>
   +email : String <<unique>>
   +password_hash : String
-  +role : Role
+  +created_at : DateTime
+  +set_password(password)
+  +check_password(password) : bool
+}
+
+class Project {
+  +id : Integer <<PK>>
+  +name : String
+  +key : String(6) <<unique>>
+  +next_issue_number : Integer
   +created_at : DateTime
 }
 
-class Listing {
+class ProjectMember {
+  +user_id : Integer <<FK>>
+  +project_id : Integer <<FK>>
+  +role : ProjectRole
+}
+
+class Issue {
   +id : Integer <<PK>>
-  +vendor_id : Integer <<FK>>
+  +project_id : Integer <<FK>>
+  +number : Integer
   +title : String
   +description : Text
-  +portions_total : Integer {1..100}
-  +portions_remaining : Integer {>= 0}
-  +location : String
-  +window_start : DateTime
-  +window_end : DateTime
-  +cancelled : Boolean
+  +type : IssueType
+  +priority : Priority
+  +status : IssueStatus
+  +story_points : Integer {1,2,3,5,8,13}
+  +assignee_id : Integer <<FK>> [0..1]
+  +sprint_id : Integer <<FK>> [0..1]
+  +key() : String
 }
 
-class Reservation {
+class Sprint {
   +id : Integer <<PK>>
-  +student_id : Integer <<FK>>
-  +listing_id : Integer <<FK>>
-  +portions : Integer {1..2}
-  +pickup_code : String(6) <<unique>>
-  +status : ReservationStatus
-  +created_at : DateTime
+  +project_id : Integer <<FK>>
+  +name : String
+  +start_date : Date
+  +end_date : Date
+  +status : SprintStatus
+  +total_points() : Integer
 }
 
-enum ReservationStatus {
-  ACTIVE
-  PICKED_UP
-  CANCELLED
-  NO_SHOW
-}
+User "1" -- "0..*" ProjectMember
+Project "1" *-- "1..*" ProjectMember : members >
+Project "1" *-- "0..*" Issue : contains >
+Project "1" *-- "0..*" Sprint : plans >
+Sprint "0..1" o-- "0..*" Issue : includes >
+User "0..1" -- "0..*" Issue : assigned to <
+ProjectMember ..> ProjectRole
+Issue ..> IssueType
+Issue ..> Priority
+Issue ..> IssueStatus
+Sprint ..> SprintStatus
 
-class DietaryTag {
-  +id : Integer <<PK>>
-  +name : String <<unique>>
-}
-
-User "1" -- "0..*" Listing : posts >
-User "1" -- "0..*" Reservation : makes >
-Listing "1" -- "0..*" Reservation : holds >
-Listing "0..*" -- "0..*" DietaryTag : tagged with >
-User ..> Role
-Reservation ..> ReservationStatus
-
-note "Only a VENDOR posts listings;\nonly a STUDENT makes reservations." as N1
+note "An issue with no sprint is in the backlog.\nAt most one ACTIVE sprint per project." as N1
 @enduml
 ```
 
-This is a starting shape, not the answer - match it to the actual models. Add `Rating` (US10) only if that story is built.
+Add `Comment` (`id`, `issue_id`, `author_id`, `body`, `created_at`; `Issue "1" *-- "0..*" Comment`, `User "1" -- "0..*" Comment : writes >`) - the foundation creates it with the other models. This is a starting shape, not the answer - match it to the actual models.
 
 ## Sequence diagram
 
-`uml/sequence-US<n>.wsd` (rename the template - the `#` is a placeholder) shows **one story's full flow from the browser through the Flask route, any service or model classes, and PostgreSQL**, with **at least one alternative path**. US4 or US7 are the suggested choices.
+`uml/sequence-US<n>.wsd` (the template `uml/sequence-US#.wsd` is a placeholder - replace it) shows **one implemented story's flow, not registration or login**, from the browser through **all three layers** - route, service, repository - to PostgreSQL, with **at least one alternative path**. US7 (start a sprint) is the suggested choice because its rule gives a natural `alt`.
 
 ```plantuml
-@startuml sequence-US4
-actor Student
+@startuml sequence-US7
+actor Owner
 participant Browser
-participant "Flask route\nreserve()" as Route
-participant "ReserveForm" as Form
-participant "Reservation\nmodel" as Model
+participant "sprints blueprint\nstart_sprint()" as Route
+participant "SprintService" as Service
+participant "SprintRepository" as Repo
 database PostgreSQL as DB
 
-Student -> Browser : choose portions, click Reserve
-Browser -> Route : POST /listings/<id>/reserve
-Route -> Form : validate_on_submit()
-Route -> DB : SELECT active reservation\nfor student + listing
-alt already has an active reservation
-  Route --> Browser : 200, "You already have a reservation"
-else no reservation yet
-  Route -> DB : UPDATE listing SET remaining = remaining - n\nWHERE id = :id AND remaining >= n
-  alt 0 rows updated (not enough portions)
-    Route --> Browser : 200, "Not enough portions left"
-  else 1 row updated
-    Route -> Model : new Reservation(pickup_code)
-    Model -> DB : INSERT reservation
-    Route -> DB : COMMIT
-    Route --> Browser : 302 -> reservation page
-    Browser --> Student : pickup code ABC123
+Owner -> Browser : click Start sprint
+Browser -> Route : POST /projects/<key>/sprints/<id>/start
+Route -> Service : start_sprint(user, sprint_id)
+Service -> Repo : get_membership(user, project)
+Repo -> DB : SELECT project_member
+alt not the owner
+  Service --> Route : raise PermissionDenied
+  Route --> Browser : 403
+else owner
+  Service -> Repo : find_active(project_id)
+  Repo -> DB : SELECT sprint WHERE status = ACTIVE
+  alt another sprint is active
+    Service --> Route : raise ValidationError
+    Route --> Browser : 200, "Another sprint is already active"
+  else none active
+    Service -> Repo : set_status(sprint, ACTIVE)
+    Repo -> DB : UPDATE sprint; COMMIT
+    Service --> Route : sprint
+    Route --> Browser : 302 -> board
+    Browser --> Owner : board shows the sprint's issues
   end
 end
 @enduml
 ```
 
-Every message is something the code actually does, in the order it does it. The conditional `UPDATE` is what makes US4.4 visible in the diagram.
+Every message is something the code actually does, in the order it does it.
 
-## Render and commit
+## Render and embed
+
+PlantUML is not installed by default. Either the PlantUML extension in VS Code / IntelliJ (export PNG), or:
 
 ```
-plantuml uml/class.wsd uml/sequence-US4.wsd
+java -jar plantuml.jar uml/use-case.wsd uml/class.wsd uml/sequence-US7.wsd
 ```
 
-Or the PlantUML extension in VS Code. Commit the rendered PNGs beside the sources so the grader does not have to render them.
+Commit the PNGs beside the sources and embed each in its README section (`![Class diagram](uml/class.png)`), so the grader does not have to render them.
 
 ## Keep them true
 
-A diagram that disagrees with the code is worth less than one that is plainly incomplete. Re-run after any `/new-model`, and when the story's route changes.
+A diagram that disagrees with the code is worth less than one that is plainly incomplete. Re-run after any `/new-model`, and when the story's flow changes.
